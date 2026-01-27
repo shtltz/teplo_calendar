@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тепло. Календарь мероприятий</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .current-month {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            padding: 8px 15px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .calendar {
+            padding: 30px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .calendar-day {
+            min-height: 120px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 8px;
+            background: white;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            border-color: #667eea;
+            border-width: 3px;
+        }
+
+        .day-number {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .event {
+            background: #4FC3F7;
+            color: white;
+            padding: 4px 8px;
+            margin: 3px 0;
+            border-radius: 5px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .event-time {
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            background: #c0392b;
+        }
+
+        .event-detail {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .event-detail:last-child {
+            border-bottom: none;
+        }
+
+        .event-detail h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.4em;
+        }
+
+        .event-detail-item {
+            margin: 8px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .event-detail-label {
+            font-weight: bold;
+            color: #666;
+            min-width: 100px;
+        }
+
+        .event-detail-value {
+            color: #333;
+        }
+
+        .event-detail-value a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .event-detail-value a:hover {
+            text-decoration: underline;
+        }
+
+        .event-category-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #e74c3c;
+            font-size: 1.1em;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .calendar-grid {
+                gap: 5px;
+            }
+            
+            .calendar-day {
+                min-height: 80px;
+                padding: 5px;
+            }
+            
+            .event {
+                font-size: 9px;
+                padding: 2px 5px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .nav-controls {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Творческая мастерская Тепло</h1>
+            <p>Календарь мероприятий</p>
+        </div>
+
+        <div class="controls">
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="changeMonth(-1)">← Предыдущий</button>
+                <div class="current-month" id="currentMonth"></div>
+                <button class="nav-btn" onclick="changeMonth(1)">Следующий →</button>
+            </div>
+            
+            <div class="filter-controls">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск мероприятий..." onkeyup="filterEvents()">
+                <div class="category-filter" id="categoryFilter"></div>
+            </div>
+        </div>
+
+        <div class="calendar" id="calendar">
+            <div class="loading">⏳ Загрузка данных...</div>
+        </div>
+
+        <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="modal" id="eventModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== НАСТРОЙКИ ====================
+        
+        // Ваша ссылка на Google Sheets CSV
+        const GOOGLE_SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTIrsI_6JOfaElPnletTbYQtX8CxNq33Utke5ln7sybo5YXcE-z8tooUIsddN31LBA9hthgggs6kDlj/pub?gid=820845205&single=true&output=csv';
+        
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+        
+        let currentDate = new Date();
+        let allEvents = [];
+        let filteredEvents = [];
+        let selectedCategories = new Set();
+        
+        const monthNames = [
+            'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+        ];
+        
+        const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        
+        const categoryColors = {
+            'Работа': '#3498db',
+            'Обучение': '#2ecc71',
+            'Встреча': '#e74c3c',
+            'Событие': '#f39c12',
+            'Развлечение': '#9b59b6',
+            'Спорт': '#1abc9c'
+        };
+        
+        // ==================== ЗАГРУЗКА ДАННЫХ ====================
+        
+        async function loadEvents() {
+            try {
+                console.log('Загрузка данных из:', GOOGLE_SHEETS_CSV_URL);
+                const response = await fetch(GOOGLE_SHEETS_CSV_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ошибка: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                console.log('Данные загружены, размер:', csvText.length);
+                
+                allEvents = parseCSV(csvText);
+                console.log('Распарсено событий:', allEvents.length);
+                
+                filteredEvents = [...allEvents];
+                
+                initCategoryFilters();
+                renderCalendar();
+                renderLegend();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                document.getElementById('calendar').innerHTML = 
+                    `<div class="error">❌ Ошибка загрузки данных: ${error.message}<br><br>
+                    <strong>Возможные причины:</strong><br>
+                    • Таблица не опубликована в интернете<br>
+                    • Неверная ссылка на CSV<br>
+                    • Проблемы с подключением к интернету<br><br>
+                    <small>Проверьте консоль браузера (F12) для подробностей</small></div>`;
+            }
+        }
+        
+        function parseCSV(csv) {
+            try {
+                const lines = csv.trim().split('\n');
+                if (lines.length < 2) {
+                    throw new Error('CSV файл пустой или содержит только заголовки');
+                }
+                
+                // Парсим заголовки
+                const headers = parseCSVLine(lines[0]).map(h => h.trim());
+                console.log('Заголовки:', headers);
+                
+                const events = [];
+                
+                // Парсим строки с данными
+                for (let i = 1; i < lines.length; i++) {
+                    try {
+                        const values = parseCSVLine(lines[i]);
+                        
+                        if (values.length === 0 || values.every(v => !v.trim())) {
+                            continue; // Пропускаем пустые строки
+                        }
+                        
+                        const event = {};
+                        headers.forEach((header, index) => {
+                            event[header] = values[index] ? values[index].trim() : '';
+                        });
+                        
+                        // Нормализуем дату
+                        if (event['Дата']) {
+                            const normalizedDate = normalizeDate(event['Дата']);
+                            if (normalizedDate) {
+                                event['Дата'] = normalizedDate;
+                                events.push(event);
+                                console.log(`Событие ${i}: ${event['Название']} - ${event['Дата']}`);
+                            } else {
+                                console.warn(`Строка ${i+1}: некорректная дата "${event['Дата']}"`);
+                            }
+                        }
+                    } catch (rowError) {
+                        console.warn(`Ошибка в строке ${i+1}:`, rowError);
+                    }
+                }
+                
+                if (events.length === 0) {
+                    throw new Error('Не найдено событий с корректными датами');
+                }
+                
+                return events;
+            } catch (error) {
+                console.error('Ошибка парсинга CSV:', error);
+                throw error;
+            }
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // Двойная кавычка внутри кавычек = одна кавычка
+                        current += '"';
+                        i++; // Пропускаем следующую кавычку
+                    } else {
+                        // Начало или конец кавычек
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
+        }
+        
+        // ==================== ФИЛЬТРАЦИЯ ====================
+        
+        function initCategoryFilters() {
+            const categories = new Set();
+            allEvents.forEach(event => {
+                if (event['Категория']) {
+                    categories.add(event['Категория']);
+                }
+            });
+            
+            const filterContainer = document.getElementById('categoryFilter');
+            filterContainer.innerHTML = '';
+            
+            const allBtn = document.createElement('button');
+            allBtn.className = 'category-btn active';
+            allBtn.textContent = 'Все';
+            allBtn.onclick = () => toggleCategory(null);
+            filterContainer.appendChild(allBtn);
+            
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'category-btn';
+                btn.textContent = category;
+                btn.onclick = () => toggleCategory(category);
+                filterContainer.appendChild(btn);
+            });
+        }
+        
+        function toggleCategory(category) {
+            const buttons = document.querySelectorAll('.category-btn');
+            
+            if (category === null) {
+                selectedCategories.clear();
+                buttons.forEach(btn => btn.classList.remove('active'));
+                buttons[0].classList.add('active');
+            } else {
+                buttons[0].classList.remove('active');
+                
+                if (selectedCategories.has(category)) {
+                    selectedCategories.delete(category);
+                } else {
+                    selectedCategories.add(category);
+                }
+                
+                buttons.forEach(btn => {
+                    if (btn.textContent === category) {
+                        btn.classList.toggle('active');
+                    }
+                });
+                
+                if (selectedCategories.size === 0) {
+                    buttons[0].classList.add('active');
+                }
+            }
+            
+            filterEvents();
+        }
+        
+        function filterEvents() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredEvents = allEvents.filter(event => {
+                const matchesSearch = !searchTerm || 
+                    event['Название'].toLowerCase().includes(searchTerm) ||
+                    (event['Описание'] && event['Описание'].toLowerCase().includes(searchTerm));
+                
+                const matchesCategory = selectedCategories.size === 0 || 
+                    selectedCategories.has(event['Категория']);
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderCalendar();
+        }
+        
+        // ==================== ОТРИСОВКА КАЛЕНДАРЯ ====================
+        
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startingDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            const daysInMonth = lastDay.getDate();
+            
+            let html = '<div class="calendar-grid">';
+            
+            // Заголовки дней недели
+            dayNames.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Дни предыдущего месяца
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const prevMonthDate = new Date(year, month, -startingDayOfWeek + i + 1);
+                html += `<div class="calendar-day other-month">
+                    <div class="day-number">${prevMonthDate.getDate()}</div>
+                </div>`;
+            }
+            
+            // Дни текущего месяца
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateString = formatDate(date);
+                const dayEvents = getDayEvents(dateString);
+                const isToday = isDateToday(date);
+                
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="showDayEvents('${dateString}')">
+                    <div class="day-number">${day}</div>`;
+                
+                dayEvents.forEach(event => {
+                    const time = event['Время'] ? `<span class="event-time">${event['Время']}</span>` : '';
+                    const category = event['Категория'] || 'Событие';
+                    const color = categoryColors[category] || '#95a5a6';
+                    const eventId = 'event_' + Math.random().toString(36).substr(2, 9);
+                    
+                    html += `<div class="event" style="background: ${color}" 
+                             onclick="event.stopPropagation();" 
+                             title="${escapeHtml(event['Название'])}">
+                        ${time}${truncate(event['Название'], 15)}
+                    </div>`;
+                });
+                
+                html += '</div>';
+            }
+            
+            // Дни следующего месяца
+            const totalCells = startingDayOfWeek + daysInMonth;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            
+            for (let i = 1; i <= remainingCells; i++) {
+                html += `<div class="calendar-day other-month">
+                    <div class="day-number">${i}</div>
+                </div>`;
+            }
+            
+            html += '</div>';
+            
+            document.getElementById('calendar').innerHTML = html;
+        }
+        
+        function getDayEvents(dateString) {
+            return filteredEvents
+                .filter(event => event['Дата'] === dateString)
+                .sort((a, b) => {
+                    if (!a['Время']) return 1;
+                    if (!b['Время']) return -1;
+                    return a['Время'].localeCompare(b['Время']);
+                });
+        }
+        
+        // ==================== МОДАЛЬНОЕ ОКНО ====================
+        
+        function showDayEvents(dateString) {
+            const events = getDayEvents(dateString);
+            if (events.length === 0) return;
+            
+            const date = new Date(dateString + 'T00:00:00');
+            const dateFormatted = `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            
+            let html = `<h2 style="color: #667eea; margin-bottom: 20px;">📅 ${dateFormatted}</h2>`;
+            
+            events.forEach(event => {
+                const category = event['Категория'] || 'Событие';
+                const color = categoryColors[category] || '#95a5a6';
+                
+                html += `<div class="event-detail">
+                    <h3>${escapeHtml(event['Название'])}</h3>
+                    <div class="event-detail-item">
+                        <span class="event-detail-label">⏰ Время:</span>
+                        <span class="event-detail-value">${event['Время'] || 'Весь день'}</span>
+                    </div>`;
+                
+                if (event['Описание']) {
+                    html += `<div class="event-detail-item">
+                        <span class="event-detail-label">📝 Описание:</span>
+                        <span class="event-detail-value">${escapeHtml(event['Описание'])}</span>
+                    </div>`;
+                }
+                
+                html += `<div class="event-detail-item">
+                    <span class="event-detail-label">🏷️ Категория:</span>
+                    <span class="event-category-badge" style="background: ${color}">${escapeHtml(category)}</span>
+                </div>`;
+                
+                if (event['Место']) {
+                    html += `<div class="event-detail-item">
+                        <span class="event-detail-label">📍 Место:</span>
+                        <span class="event-detail-value">${escapeHtml(event['Место'])}</span>
+                    </div>`;
+                }
+                
+                if (event['Ссылка']) {
+                    html += `<div class="event-detail-item">
+                        <span class="event-detail-label">🔗 Ссылка:</span>
+                        <span class="event-detail-value"><a href="${escapeHtml(event['Ссылка'])}" target="_blank" rel="noopener">Открыть</a></span>
+                    </div>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('eventModal').classList.add('active');
+        }
+        
+        function closeModal(event) {
+            if (!event || event.target.id === 'eventModal' || event.target.className === 'modal-close') {
+                document.getElementById('eventModal').classList.remove('active');
+            }
+        }
+        
+        // ==================== ЛЕГЕНДА ====================
+        
+        function renderLegend() {
+            const categories = new Set();
+            allEvents.forEach(event => {
+                if (event['Категория']) {
+                    categories.add(event['Категория']);
+                }
+            });
+            
+            if (categories.size === 0) {
+                document.getElementById('legend').style.display = 'none';
+                return;
+            }
+            
+            let html = '<strong style="margin-right: 15px;">Категории:</strong>';
+            
+            categories.forEach(category => {
+                const color = categoryColors[category] || '#95a5a6';
+                html += `<div class="legend-item">
+                    <div class="legend-color" style="background: ${color}"></div>
+                    <span>${escapeHtml(category)}</span>
+                </div>`;
+            });
+            
+            document.getElementById('legend').innerHTML = html;
+        }
+        
+        // ==================== НАВИГАЦИЯ ====================
+        
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        // ==================== УТИЛИТЫ ====================
+        
+        function normalizeDate(dateStr) {
+            if (!dateStr || typeof dateStr !== 'string') return null;
+            
+            dateStr = dateStr.trim();
+            
+            // Формат DD.MM.YYYY или DD/MM/YYYY
+            const europeanMatch = dateStr.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})$/);
+            if (europeanMatch) {
+                const day = europeanMatch[1].padStart(2, '0');
+                const month = europeanMatch[2].padStart(2, '0');
+                const year = europeanMatch[3];
+                return `${year}-${month}-${day}`;
+            }
+            
+            // Формат YYYY-MM-DD
+            const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if (isoMatch) {
+                const year = isoMatch[1];
+                const month = isoMatch[2].padStart(2, '0');
+                const day = isoMatch[3].padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            
+            return null;
+        }
+        
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        function isDateToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                   date.getMonth() === today.getMonth() &&
+                   date.getFullYear() === today.getFullYear();
+        }
+        
+        function truncate(str, maxLength) {
+            if (!str) return '';
+            return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Календарь инициализирован');
+            loadEvents();
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
